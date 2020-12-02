@@ -1,6 +1,7 @@
 
 ## An F# exercise.
 
+This repository contains a simple exercise in F#. I give here a quick view of it.
 A box is modeled like a rectangular grid with cells having coordinates like (0,0)  (the south west corner) and (N,M) (the north east corner).
 
 The user can set N and N.
@@ -277,5 +278,15 @@ Playing is about starting the first step and then entering an infinite loop:
                 ()
 ```
 
+To run the tests,in the mouseLibraryTest dir and launch:
+```
+dotnet test
+```
+To play as an interactive loop, in the mouseLibraryTest:
+```
+dotnet run
 
+```
 
+## coming soon:
+I'll show how I can put everything in an elmish application.
