@@ -1,12 +1,14 @@
 
 ## An F# exercise.
 
-This repository contains a simple exercise in F#. I give here a quick view of it.
-A box is modeled like a rectangular grid with cells having coordinates like (0,0)  (the south west corner) and (N,M) (the north east corner).
+This repository contains a simple exercise in F#. 
+A quick explanation of the problem follows.
 
-The user can set N and N.
+A box is modeled as a rectangular grid with cells having coordinates like (0,0)  (the south west corner) and (N,M) (the north east corner).
 
-The user can place a mouse in the box providing its position (i.e the cell) and its orientation: South, North, East, West. 
+The user must set N and N.
+
+The user places a mouse in the box providing its position (i.e the cell) and its orientation: South, North, East, West. 
 
 The user also can give the following commands to move the mouse:
 
@@ -16,23 +18,23 @@ Turn the mouse Right
 
 Move Forward
 
-For instance, if the mouse is oriented to the east and its position is (x,y) then its position after a forward command will be (x+1, y).
+For instance, if the mouse is oriented to the East and its position is (x, y) then its position after a forward command will be (x+1, y).
 
-The cells of the box can be free or locked. In the beginning, all the cells are free.
+Any cells of the box can be in two possible states: free or locked. 
+At the beginning of the game, all the cells are free.
 
-If the mouse receives a command that makes it go outside of the box (i.e. the target cell will be a (x,y) where x<0 or x>N or y<0 or y>M) then it can actually escape only if the starting cell is free. In that case After moving the mouse state will be Escaped, and the starting cell becomes locked.
+If the mouse receives a command that makes it go outside of the box (i.e. the target cell will be a (x,y) where x<0 or x>N or y<0 or y>M) then it can actually escape only if the cell where it is has status "free". In that case after moving the mouse state will be Escaped, and the starting cell becomes locked.
+Otherwise the mouse will just stay in the same cell.
 
-A mouse cannot escape from a locked cell, so if it tries to do it, it will just stay there.
-
-The user gives commands by the console using sequences of characters on multiple lines.
+The user can gives commands by the console using sequences of characters on multiple lines.
 
 The first line indicates the N and M values
 
 For instance, the sequence of characters 53 indicates that M is 5 and N is 3.
 
-Each of the following lines is meant to indicate the position of a mouse and the sequence of its movement in the box.
+Each one of the following lines is meant to indicate the position of a mouse and the sequence of its movement in the box.
 
-The position indicated in the line is like 11E (position (1,1) oriented to East) followed by a space and a sequence of chars 'L', 'R' and 'F' (turn left, turn right, go forward).
+The position indicated in the line is like 11E (position (1, 1) oriented to East) followed by a space and a sequence of chars 'L', 'R' and 'F' (turn left, turn right, go forward).
 
 
 Some examples:
@@ -57,7 +59,6 @@ as output, we will have the final position of the mouse for each line
 ```
 
 
-
 ## The model
 The domain model is in the module Mouse
 
@@ -69,12 +70,6 @@ a position is a pair of int:
 type Position = int*int
 ```
 
-A cell has a position and a state:
-
-```
-type Cell = {CellState: CellState; Position: Position}
-```
-
 The state of a cell can be Locked or free:
 
 ```
@@ -82,8 +77,13 @@ type CellState =
     | Locked 
     | Free
 ```
+A cell has a position and a state:
 
-A box is a list of cells, and a X and Y bounds:
+```
+type Cell = {CellState: CellState; Position: Position}
+```
+
+A box is a list of cells, and X and Y as bounds.
 
 ```
     type Box = 
@@ -95,7 +95,7 @@ A box is a list of cells, and a X and Y bounds:
 
 ```
 
-The possible movement of the mouse are turning left, right, or going forward:
+The possible movement of the mouse are: turn left or right, or go forward:
 
 ```
     type Movement = 
@@ -103,7 +103,8 @@ The possible movement of the mouse are turning left, right, or going forward:
         | Right 
         | Forward
 ```
-The orientation of the mouse: 
+
+The orientation of the mouse are: 
 ```
     type Orientation = 
         | South 
@@ -112,8 +113,7 @@ The orientation of the mouse:
         | West
 
 ```
-
-A "plain" mouse has a position and an orientation:
+I call a "plain" mouse, a mouse without considering if it is Active or Escaped
 
 ```
     type PlainMouse = 
@@ -123,13 +123,85 @@ A "plain" mouse has a position and an orientation:
         }
 ```
 
-A mouse can be active or escaped
+A mouse is a plain mouse, considering its state (Active or Escaped)
 
 ```
     type Mouse = 
         | Active of PlainMouse 
         | Escaped of PlainMouse
 ```
+
+
+We know that when a mouse escapes, then it will lock the cell, so 
+we need a function that locks the cell. It takes the coordinates of a cell and a box
+and returns the box where the given cell is locked
+
+```
+    let lockCell (x, y) box =
+        {
+            box with Cells = 
+                {
+                    CellState = Locked
+                    Position = (x, y)
+                }
+                :: (box.Cells 
+                   |> List.filter 
+                        (fun cell -> fst cell.Position <> x || snd cell.Position <> y))
+        }
+```
+
+given a cell, going in some direction means moving to the adjacent cell according to the direction given:
+
+```
+    let go direction (x, y) =
+        match direction with
+        | North -> (x, y + 1)
+        | South -> (x, y - 1)
+        | West ->  (x - 1, y)
+        | East ->  (x + 1, y)
+
+```
+
+the following utility functions are self explanatory:
+
+```
+    let turn orientation plainMouse =
+        let turnRight plainMouse =
+            match plainMouse.Orientation with
+                | North ->  {plainMouse with Orientation = East}
+                | East ->   {plainMouse with Orientation = South}
+                | South ->  {plainMouse with Orientation = West}
+                | West ->   {plainMouse with Orientation = North}
+                
+        let turnLeft plainMouse =
+            match plainMouse.Orientation with
+                | North ->  {plainMouse with Orientation = West}
+                | West ->   {plainMouse with Orientation = South}
+                | South ->  {plainMouse with Orientation = East}
+                | East ->   {plainMouse with Orientation = North}
+
+        match orientation with
+            | Right ->  plainMouse |> turnRight
+            | Left ->   plainMouse |> turnLeft
+            | _ -> failwith "unexpected case"
+
+    let isInBorder box direction plainMouse =
+        match direction with
+            | North ->  box.YDim = snd plainMouse.Position
+            | South ->  snd plainMouse.Position = 0
+            | East ->   fst plainMouse.Position = box.XDim
+            | West ->   fst plainMouse.Position = 0        
+
+
+```
+Considering all the previous functions we have a move function that does what we need in order to:
+make an active mouse turn lef or right if the movement are TurnLeft or TurnRight
+make an active mouse move forward if the movement is Forward and it is not in a border
+make an active mouse escape if it is in a free cell on the border and the movement is forward
+make an active mouse stuck in a locked cell if it tries to move forward outside of the box
+make an escaped mouse stuck without changing anything
+
+
 
 ```
     let move movement (mouse, box) =

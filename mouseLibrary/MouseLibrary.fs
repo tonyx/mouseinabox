@@ -53,36 +53,36 @@ module Mouse =
         | Active of PlainMouse 
         | Escaped of PlainMouse
 
-    let makeMovingMouse (x,y) orientation =
+    let makeMovingMouse (x, y) orientation =
         Active {
             Orientation=orientation
-            Position = (x,y)
+            Position = (x, y)
         }
 
-    let lockCell (x,y) box =
+    let lockCell (x, y) box =
         {
             box with Cells = 
                 {
                     CellState = Locked
-                    Position = (x,y)
+                    Position = (x, y)
                 }
                 :: (box.Cells 
                    |> List.filter 
                         (fun cell -> fst cell.Position <> x || snd cell.Position <> y))
         }
 
-    let isCellLocked ((x,y): Position) (box: Box) =
+    let isCellLocked ((x, y): Position) (box: Box) =
         box.Cells 
         |> List.find 
-            (fun border -> fst border.Position = x && snd border.Position = y) 
-            |> fun item -> item.CellState=Locked
+            (fun cell -> fst cell.Position = x && snd cell.Position = y) 
+            |> fun item -> item.CellState = Locked
 
     let go direction (x, y) =
         match direction with
-        | North -> (x, y+1)
-        | South -> (x, y-1)
-        | West ->  (x- 1,y)
-        | East ->  (x+ 1,y)
+        | North -> (x, y + 1)
+        | South -> (x, y - 1)
+        | West ->  (x - 1, y)
+        | East ->  (x + 1, y)
 
     let turn orientation plainMouse =
         let turnRight plainMouse =
